@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { APP_LINKS } from '@/lib/constants'
+import { FlowDesign1 } from './FlowDesign1'
+
 
 // Core horizontal workflows provided by founder
 const APP_FLOWS = [
@@ -158,7 +160,7 @@ export function HomeClient() {
       <section className="relative w-full py-16 md:py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Column: Copy */}
         <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20">
+          <div className="hidden md:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             <span className="text-sm font-semibold text-accent tracking-wide uppercase">
               Now Live on Solana Mainnet
@@ -243,50 +245,8 @@ export function HomeClient() {
         </div>
       </section>
 
-      {/* USP Feature Sections — alternating layout like the reference */}
-      <section className="bg-background px-6 py-16 space-y-32">
-        {APP_FLOWS.map((flow, index) => {
-          const isEven = index % 2 === 0
-          return (
-            <div key={flow.id} className="max-w-6xl mx-auto">
-              <div className={`grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center ${!isEven ? 'lg:[direction:rtl]' : ''}`}>
-                {/* Text Content */}
-                <div className={!isEven ? 'lg:[direction:ltr]' : ''}>
-                  <span className="text-accent text-sm font-bold tracking-widest uppercase">
-                    {index + 1}
-                  </span>
-                  <h3 className="text-2xl md:text-4xl font-black tracking-tight text-foreground leading-tight mt-3">
-                    {flow.title}
-                  </h3>
-                  <p className="text-sm md:text-base text-secondary leading-relaxed mt-4 max-w-md">
-                    {flow.desc}
-                  </p>
-                  <ul className="mt-6 space-y-3">
-                    {['Auto-routing via Jupiter', 'MEV protected transactions', 'Mainnet live'].map((item) => (
-                      <li key={item} className="flex items-center gap-3 text-sm text-secondary/80">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Screenshot */}
-                <div className={!isEven ? 'lg:[direction:ltr]' : ''}>
-                  <div className="relative bg-card border border-border rounded-2xl p-5 md:p-8 overflow-hidden shadow-lg">
-                    <img
-                      src={flow.image}
-                      alt={flow.title}
-                      className="w-full h-auto rounded-lg object-contain select-none"
-                      draggable="false"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </section>
+      {/* Core Flow Section (Theme 1: Immersive Theater) */}
+      <FlowDesign1 flows={APP_FLOWS} />
 
       {/* Responsive App Screens Showcase Section */}
       <section className="py-24 bg-background border-t border-border relative overflow-hidden">
@@ -385,9 +345,8 @@ export function HomeClient() {
                   key={screen.id}
                   onMouseEnter={() => setTheme4HoveredIdx(idx)}
                   onMouseLeave={() => setTheme4HoveredIdx(null)}
-                  className={`relative rounded-3xl border border-border bg-card/20 p-6 overflow-hidden flex gap-6 justify-between items-center transition-all duration-500 ease-out cursor-pointer ${gridClasses} ${
-                    isDimmed ? 'opacity-35 scale-[0.97] blur-[1px]' : 'opacity-100 scale-100'
-                  } ${isHovered ? 'border-accent/50 shadow-accent/10 bg-card/60' : ''}`}
+                  className={`relative rounded-3xl border border-border bg-card/20 p-6 overflow-hidden flex gap-6 justify-between items-center transition-all duration-500 ease-out cursor-pointer ${gridClasses} ${isDimmed ? 'opacity-35 scale-[0.97] blur-[1px]' : 'opacity-100 scale-100'
+                    } ${isHovered ? 'border-accent/50 shadow-accent/10 bg-card/60' : ''}`}
                 >
                   <div className="flex-1 flex flex-col h-full justify-between z-10">
                     <div>
@@ -451,7 +410,7 @@ export function HomeClient() {
       </section>
 
       {/* CTA Bottom Banner */}
-      <section className="bg-accent text-background py-16 text-center px-6">
+      <section className="bg-accent/80 text-background py-16 text-center px-6">
         <div className="max-w-2xl mx-auto space-y-6">
           <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-none">
             START HUNTING TODAY
@@ -464,7 +423,7 @@ export function HomeClient() {
               href={APP_LINKS.appStore}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 bg-foreground text-background font-bold rounded-xl hover:brightness-110 transition-colors"
+              className="px-6 py-3 bg-foreground/60 text-background font-bold rounded-xl hover:brightness-110 transition-colors"
             >
               App Store
             </a>

@@ -13,9 +13,6 @@ export default function Home() {
 
       {/* Client-side Hero and Content */}
       <HomeClient />
-
-      {/* Bottom Token Banner */}
-      <TokenBanner />
     </div>
   )
 }
