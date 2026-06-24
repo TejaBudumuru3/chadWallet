@@ -13,6 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         embeddedWallets: {
           solana: { createOnLogin: 'users-without-wallets' },
         },
+        loginMethods: ['google', 'apple'],
       }}
     >
       {children}

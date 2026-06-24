@@ -29,7 +29,7 @@ export function TokenBanner() {
   const doubled = [...tokens, ...tokens]
 
   return (
-    <div className="overflow-hidden bg-[#C5F236] py-2 cursor-pointer select-none">
+    <div className="overflow-hidden bg-zinc-900 border-b border-white/5 py-2 cursor-pointer select-none">
       <div className="flex gap-8 whitespace-nowrap animate-marquee">
         {doubled.map((token, i) => (
           <button
@@ -47,14 +47,14 @@ export function TokenBanner() {
                 }}
               />
             )}
-            <span className="font-bold text-black text-sm">
+            <span className="font-bold text-white text-sm">
               ${token.symbol}
             </span>
             <span
               className={`text-xs font-semibold ${
                 token.price24hChangePercent >= 0
-                  ? 'text-black/80'
-                  : 'text-red-700'
+                  ? 'text-green-400'
+                  : 'text-red-400'
               }`}
             >
               {token.price24hChangePercent >= 0 ? '+' : ''}
