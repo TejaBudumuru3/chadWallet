@@ -3,7 +3,12 @@ import { Suspense, useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Navbar } from '@/components/layout/Navbar'
 import { TokenList } from '@/components/trade/TokenList'
-import { TokenChart } from '@/components/trade/TokenChart'
+import dynamic from 'next/dynamic'
+
+const TokenChart = dynamic(() => import('@/components/trade/TokenChart').then(mod => mod.TokenChart), {
+  ssr: false,
+  loading: () => <div className="w-full h-[460px] bg-card/40 border border-border rounded-xl animate-pulse flex items-center justify-center text-secondary font-mono text-sm">Loading Chart Data...</div>
+})
 import { TradePanel } from '@/components/trade/TradePanel'
 import { Copy, Check, ExternalLink, RefreshCw, X, TrendingUp, Info } from 'lucide-react'
 
@@ -33,17 +38,18 @@ function TradeContent() {
   const tokenAddressFromUrl = searchParams.get('token')
 
   const [selectedToken, setSelectedToken] = useState<Token | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [activeBottomTab, setActiveBottomTab] = useState<'ORDERS' | 'OVERVIEW' | 'NEWS'>('ORDERS')
+  const [activeBottomTab, setActiveBottomTab] = useState<'LIVE' | 'ORDERS' | 'OVERVIEW' | "NEWS">('LIVE')
   const [orders, setOrders] = useState<Order[]>([])
   const [mobileTab, setMobileTab] = useState<'CHART' | 'BOOK' | 'TRADE'>('CHART')
   const [toasts, setToasts] = useState<{ id: string; message: string; sub: string; hash?: string }[]>([])
   const urlTokenLoaded = useRef(false)
-
-  // Load token from URL only once on mount
+  const [copied, setCopied] = useState(false)
+  const [liveTrades, setLiveTrades] = useState<any[]>([])
+  // Load token and trades from URL only once on mount
   useEffect(() => {
     if (tokenAddressFromUrl && !urlTokenLoaded.current) {
       urlTokenLoaded.current = true
+      // Fetch token details
       fetch(`/api/tokens/${tokenAddressFromUrl}`)
         .then((res) => res.json())
         .then((json) => {
@@ -60,13 +66,42 @@ function TradeContent() {
           }
         })
         .catch((err) => console.error('Failed to load URL token:', err))
+
+      // Fetch initial live trades
+      fetch(`/api/tokens/${tokenAddressFromUrl}/trades`)
+        .then(res => res.json())
+        .then(json => {
+          if (json.trades) setLiveTrades(json.trades)
+        })
+        .catch(err => console.error('Failed to load trades:', err))
     }
   }, [tokenAddressFromUrl])
 
+  // Poll for live trades every 10s if a token is selected
+  useEffect(() => {
+    if (!selectedToken) return
+    const interval = setInterval(() => {
+      fetch(`/api/tokens/${selectedToken.address}/trades`)
+        .then(res => res.json())
+        .then(json => {
+          if (json.trades) setLiveTrades(json.trades)
+        })
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [selectedToken])
+
   const handleSelectToken = (token: Token) => {
     setSelectedToken(token)
+    setLiveTrades([]) // clear old trades
     // Use history API directly to avoid Next.js router re-render cycle
     window.history.replaceState(null, '', `/trade?token=${token.address}`)
+
+    // Fetch new trades immediately
+    fetch(`/api/tokens/${token.address}/trades`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.trades) setLiveTrades(json.trades)
+      })
   }
 
   const handleCopyAddress = () => {
@@ -97,7 +132,6 @@ function TradeContent() {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }
 
-  // Pre-configured mock market overview data
   const marketOverview = [
     { name: 'Bitcoin', symbol: 'BTC', price: '$67,954.20', change: '+2.41%', up: true },
     { name: 'Ethereum', symbol: 'ETH', price: '$3,485.50', change: '-1.15%', up: false },
@@ -131,32 +165,32 @@ function TradeContent() {
   ]
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-black text-white relative">
+    <div className="flex-1 flex flex-col min-h-0 bg-background text-foreground relative">
       {/* Top Token Detail Bar */}
       {selectedToken && (
-        <div className="bg-zinc-950 border-b border-white/5 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-card border-b border-border px-4 py-3 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
               src={selectedToken.logoURI || '/logo/light.png'}
               alt={selectedToken.symbol}
-              className="w-8 h-8 rounded-full bg-white/10"
+              className="w-8 h-8 rounded-full bg-border"
               onError={(e) => {
-                ;(e.target as HTMLImageElement).src = '/logo/light.png'
+                ; (e.target as HTMLImageElement).src = '/logo/light.png'
               }}
             />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-black text-base text-white">{selectedToken.name}</span>
-                <span className="text-xs font-mono text-[#C5F236] bg-[#C5F236]/10 px-2 py-0.5 rounded font-bold">
+                <span className="font-black text-base text-foreground">{selectedToken.name}</span>
+                <span className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded font-bold">
                   {selectedToken.symbol}
                 </span>
               </div>
               <button
                 onClick={handleCopyAddress}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors mt-0.5"
+                className="flex items-center gap-1.5 text-xs text-secondary hover:text-foreground/80 transition-colors mt-0.5"
               >
                 <span className="font-mono">{selectedToken.address.slice(0, 12)}...{selectedToken.address.slice(-12)}</span>
-                {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
               </button>
             </div>
           </div>
@@ -164,33 +198,33 @@ function TradeContent() {
           {/* Pricing Metrics */}
           <div className="flex items-center gap-6 flex-wrap font-mono">
             <div>
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Price</div>
-              <div className="text-sm font-black text-white">
+              <div className="text-[10px] font-bold text-secondary uppercase tracking-wider">Price</div>
+              <div className="text-sm font-black text-foreground">
                 ${selectedToken.price > 1 ? selectedToken.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : selectedToken.price.toFixed(6)}
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">24h Change</div>
+              <div className="text-[10px] font-bold text-secondary uppercase tracking-wider">24h Change</div>
               <div className={`text-sm font-black ${selectedToken.price24hChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {selectedToken.price24hChangePercent >= 0 ? '+' : ''}
                 {selectedToken.price24hChangePercent.toFixed(2)}%
               </div>
             </div>
             <div className="hidden sm:block">
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">24h High</div>
-              <div className="text-sm font-bold text-white">
+              <div className="text-[10px] font-bold text-secondary uppercase tracking-wider">24h High</div>
+              <div className="text-sm font-bold text-foreground">
                 ${(selectedToken.price * 1.05).toLocaleString(undefined, { maximumFractionDigits: 4 })}
               </div>
             </div>
             <div className="hidden sm:block">
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">24h Low</div>
-              <div className="text-sm font-bold text-white">
+              <div className="text-[10px] font-bold text-secondary uppercase tracking-wider">24h Low</div>
+              <div className="text-sm font-bold text-foreground">
                 ${(selectedToken.price * 0.94).toLocaleString(undefined, { maximumFractionDigits: 4 })}
               </div>
             </div>
             <div className="hidden md:block">
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">24h Volume</div>
-              <div className="text-sm font-bold text-white">
+              <div className="text-[10px] font-bold text-secondary uppercase tracking-wider">24h Volume</div>
+              <div className="text-sm font-bold text-foreground">
                 ${selectedToken.v24hUSD ? selectedToken.v24hUSD.toLocaleString() : '842,500'}
               </div>
             </div>
@@ -199,7 +233,7 @@ function TradeContent() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.location.reload()}
-              className="p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-card border border-border hover:bg-border/50 text-secondary hover:text-foreground transition-all cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -209,30 +243,27 @@ function TradeContent() {
 
       {/* Main Terminal Layout */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 min-h-0 overflow-hidden">
-        
+
         {/* Mobile Sub-Navigation Header */}
-        <div className="md:hidden grid grid-cols-3 bg-zinc-950 border-b border-white/5">
+        <div className="md:hidden grid grid-cols-3 bg-card border-b border-border">
           <button
             onClick={() => setMobileTab('CHART')}
-            className={`py-3 text-center text-xs font-bold transition-all cursor-pointer ${
-              mobileTab === 'CHART' ? 'text-[#C5F236] border-b border-[#C5F236]' : 'text-white/40'
-            }`}
+            className={`py-3 text-center text-xs font-bold transition-all cursor-pointer ${mobileTab === 'CHART' ? 'text-accent border-b border-accent' : 'text-secondary'
+              }`}
           >
             Chart
           </button>
           <button
             onClick={() => setMobileTab('BOOK')}
-            className={`py-3 text-center text-xs font-bold transition-all cursor-pointer ${
-              mobileTab === 'BOOK' ? 'text-[#C5F236] border-b border-[#C5F236]' : 'text-white/40'
-            }`}
+            className={`py-3 text-center text-xs font-bold transition-all cursor-pointer ${mobileTab === 'BOOK' ? 'text-accent border-b border-accent' : 'text-secondary'
+              }`}
           >
             Order Book
           </button>
           <button
             onClick={() => setMobileTab('TRADE')}
-            className={`py-3 text-center text-xs font-bold transition-all cursor-pointer ${
-              mobileTab === 'TRADE' ? 'text-[#C5F236] border-b border-[#C5F236]' : 'text-white/40'
-            }`}
+            className={`py-3 text-center text-xs font-bold transition-all cursor-pointer ${mobileTab === 'TRADE' ? 'text-accent border-b border-accent' : 'text-secondary'
+              }`}
           >
             Trade Console
           </button>
@@ -243,13 +274,13 @@ function TradeContent() {
           <TokenList
             onSelectToken={handleSelectToken}
             selectedTokenAddress={selectedToken?.address}
+            autoSelectFirst={!tokenAddressFromUrl}
           />
         </div>
 
         {/* Column 2: Center Chart & Info */}
-        <div className={`md:col-span-5 lg:col-span-7 h-full flex flex-col min-h-0 overflow-y-auto border-r border-white/5 ${
-          mobileTab !== 'CHART' ? 'hidden md:flex' : 'flex'
-        }`}>
+        <div className={`md:col-span-5 lg:col-span-7 h-full flex flex-col min-h-0 overflow-y-auto border-r border-border ${mobileTab !== 'CHART' ? 'hidden md:flex' : 'flex'
+          }`}>
           <div className="p-4 flex-1 flex flex-col gap-4 min-h-[460px]">
             {selectedToken && (
               <TokenChart
@@ -261,56 +292,112 @@ function TradeContent() {
             )}
 
             {/* Bottom Tabbed Console */}
-            <div className="flex-1 bg-zinc-950 border border-white/5 rounded-2xl flex flex-col min-h-[300px]">
+            <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col min-h-[300px]">
               {/* Tabs */}
-              <div className="flex border-b border-white/5 bg-zinc-900/50 rounded-t-2xl">
+              <div className="flex border-b border-border bg-background/50 rounded-t-2xl">
+                <button
+                  onClick={() => setActiveBottomTab('LIVE')}
+                  className={`px-6 py-3.5 text-xs font-bold border-r border-border transition-all cursor-pointer ${activeBottomTab === 'LIVE'
+                      ? 'bg-card text-accent'
+                      : 'text-secondary hover:text-foreground'
+                    }`}
+                >
+                  Live Trades
+                </button>
                 <button
                   onClick={() => setActiveBottomTab('ORDERS')}
-                  className={`px-6 py-3.5 text-xs font-bold border-r border-white/5 transition-all cursor-pointer ${
-                    activeBottomTab === 'ORDERS'
-                      ? 'bg-zinc-950 text-[#C5F236]'
-                      : 'text-white/45 hover:text-white'
-                  }`}
+                  className={`px-6 py-3.5 text-xs font-bold border-r border-border transition-all cursor-pointer ${activeBottomTab === 'ORDERS'
+                      ? 'bg-card text-accent'
+                      : 'text-secondary hover:text-foreground'
+                    }`}
                 >
-                  Recent Swaps ({orders.length})
+                  My Orders ({orders.length})
                 </button>
                 <button
                   onClick={() => setActiveBottomTab('OVERVIEW')}
-                  className={`px-6 py-3.5 text-xs font-bold border-r border-white/5 transition-all cursor-pointer ${
-                    activeBottomTab === 'OVERVIEW'
-                      ? 'bg-zinc-950 text-[#C5F236]'
-                      : 'text-white/45 hover:text-white'
-                  }`}
+                  className={`px-6 py-3.5 text-xs font-bold transition-all cursor-pointer ${activeBottomTab === 'OVERVIEW'
+                      ? 'bg-card text-accent'
+                      : 'text-secondary hover:text-foreground'
+                    }`}
                 >
                   Market Overview
-                </button>
-                <button
-                  onClick={() => setActiveBottomTab('NEWS')}
-                  className={`px-6 py-3.5 text-xs font-bold transition-all cursor-pointer ${
-                    activeBottomTab === 'NEWS'
-                      ? 'bg-zinc-950 text-[#C5F236]'
-                      : 'text-white/45 hover:text-white'
-                  }`}
-                >
-                  News & Alerts
                 </button>
               </div>
 
               {/* Tab Contents */}
               <div className="flex-1 p-4 overflow-y-auto">
-                {activeBottomTab === 'ORDERS' && (
+                {activeBottomTab === 'LIVE' && (
                   <div className="w-full">
-                    {orders.length === 0 ? (
-                      <div className="h-44 flex flex-col items-center justify-center text-white/30 text-sm gap-2">
-                        <TrendingUp className="w-6 h-6 opacity-40" />
-                        <span>No transactions executed yet</span>
-                        <span className="text-xs text-white/20">Submit a buy or sell order above</span>
+                    {liveTrades.length === 0 ? (
+                      <div className="h-44 flex flex-col items-center justify-center text-secondary/50 text-sm gap-2">
+                        <div className="w-6 h-6 rounded-full border-2 border-t-accent border-border animate-spin" />
+                        <span>Connecting to chain...</span>
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse font-mono text-xs">
                           <thead>
-                            <tr className="border-b border-white/5 text-white/40 pb-2">
+                            <tr className="border-b border-border text-secondary pb-2">
+                              <th className="py-2">Time</th>
+                              <th className="py-2">Type</th>
+                              <th className="py-2 text-right">USD Value</th>
+                              <th className="py-2 text-right">Tokens</th>
+                              <th className="py-2 pl-4">Maker</th>
+                              <th className="py-2 text-right">Tx</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/30">
+                            {liveTrades.map((t, idx) => {
+                              const timeString = new Date(t.blockTime * 1000).toLocaleTimeString([], { hour12: false })
+                              const isBuy = t.side === 'buy'
+                              return (
+                                <tr key={idx} className="hover:bg-border/20">
+                                  <td className="py-2.5 text-secondary">{timeString}</td>
+                                  <td className={`py-2.5 font-bold ${isBuy ? 'text-green-500' : 'text-red-500'}`}>
+                                    {isBuy ? 'BUY' : 'SELL'}
+                                  </td>
+                                  <td className="py-2.5 text-right text-foreground">
+                                    ${t.amountUSD > 1000 ? t.amountUSD.toLocaleString(undefined, { maximumFractionDigits: 0 }) : t.amountUSD.toFixed(2)}
+                                  </td>
+                                  <td className="py-2.5 text-right text-foreground font-bold">
+                                    {isBuy ? t.to.amount.toFixed(2) : t.from.amount.toFixed(2)}
+                                  </td>
+                                  <td className="py-2.5 pl-4 text-secondary/80">
+                                    {t.maker.slice(0, 4)}...{t.maker.slice(-4)}
+                                  </td>
+                                  <td className="py-2.5 text-right">
+                                    <a
+                                      href={`https://solscan.io/tx/${t.txHash}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 hover:underline"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeBottomTab === 'ORDERS' && (
+                  <div className="w-full">
+                    {orders.length === 0 ? (
+                      <div className="h-44 flex flex-col items-center justify-center text-secondary/50 text-sm gap-2">
+                        <TrendingUp className="w-6 h-6 opacity-40" />
+                        <span>No transactions executed yet</span>
+                        <span className="text-xs text-secondary/30">Submit a buy or sell order above</span>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse font-mono text-xs">
+                          <thead>
+                            <tr className="border-b border-border text-secondary pb-2">
                               <th className="py-2">Time</th>
                               <th className="py-2">Type</th>
                               <th className="py-2">Price</th>
@@ -320,18 +407,18 @@ function TradeContent() {
                               <th className="py-2 text-right">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/2">
+                          <tbody className="divide-y divide-border/30">
                             {orders.map((o, idx) => (
-                              <tr key={idx} className="hover:bg-white/2">
-                                <td className="py-2.5 text-white/60">{o.time}</td>
+                              <tr key={idx} className="hover:bg-border/20">
+                                <td className="py-2.5 text-secondary">{o.time}</td>
                                 <td className={`py-2.5 font-bold ${o.type === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>
                                   {o.type}
                                 </td>
-                                <td className="py-2.5 text-white">
+                                <td className="py-2.5 text-foreground">
                                   ${o.price > 1 ? o.price.toFixed(2) : o.price.toFixed(6)}
                                 </td>
-                                <td className="py-2.5 text-white font-bold">{o.amountToken.toFixed(2)}</td>
-                                <td className="py-2.5 text-white">{o.amountSol.toFixed(3)} SOL</td>
+                                <td className="py-2.5 text-foreground font-bold">{o.amountToken.toFixed(2)}</td>
+                                <td className="py-2.5 text-foreground">{o.amountSol.toFixed(3)} SOL</td>
                                 <td className="py-2.5">
                                   <a
                                     href={`https://solscan.io/tx/${o.hash}`}
@@ -362,15 +449,14 @@ function TradeContent() {
                     {marketOverview.map((item) => (
                       <div
                         key={item.symbol}
-                        className="bg-white/2 border border-white/5 rounded-xl p-3.5 flex items-center justify-between"
+                        className="bg-card/40 border border-border rounded-xl p-3.5 flex items-center justify-between"
                       >
                         <div>
-                          <div className="text-xs text-white/40 font-bold">{item.name}</div>
-                          <div className="text-sm font-black font-mono text-white mt-1">{item.price}</div>
+                          <div className="text-xs text-secondary font-bold">{item.name}</div>
+                          <div className="text-sm font-black font-mono text-foreground mt-1">{item.price}</div>
                         </div>
-                        <div className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
-                          item.up ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                        }`}>
+                        <div className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${item.up ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                          }`}>
                           {item.change}
                         </div>
                       </div>
@@ -383,15 +469,15 @@ function TradeContent() {
                     {newsAlerts.map((n, i) => (
                       <div
                         key={i}
-                        className="flex items-start gap-3.5 p-3.5 bg-white/2 border border-white/5 rounded-xl hover:border-white/10 transition-colors"
+                        className="flex items-start gap-3.5 p-3.5 bg-card/40 border border-border rounded-xl hover:border-border/80 transition-colors"
                       >
-                        <div className="p-2 rounded-lg bg-[#C5F236]/10 text-[#C5F236]">
+                        <div className="p-2 rounded-lg bg-accent/10 text-accent">
                           <Info className="w-4 h-4" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-xs font-bold leading-relaxed text-white">{n.title}</h4>
-                          <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/40 font-semibold">
-                            <span className="px-2 py-0.5 rounded bg-white/5 text-white/60">
+                          <h4 className="text-xs font-bold leading-relaxed text-foreground">{n.title}</h4>
+                          <div className="flex items-center gap-3 mt-1.5 text-[10px] text-secondary font-semibold">
+                            <span className="px-2 py-0.5 rounded bg-border text-secondary/80">
                               {n.category}
                             </span>
                             <span>{n.time}</span>
@@ -407,13 +493,12 @@ function TradeContent() {
         </div>
 
         {/* Column 3: Order Book & Buy/Sell Pane */}
-        <div className={`md:col-span-4 lg:col-span-3 h-full flex flex-col min-h-0 overflow-y-auto divide-y divide-white/5 ${
-          mobileTab === 'CHART' ? 'hidden md:flex' : mobileTab === 'BOOK' ? 'flex' : 'hidden md:flex'
-        }`}>
+        <div className={`md:col-span-4 lg:col-span-3 h-full flex flex-col min-h-0 overflow-y-auto divide-y divide-border ${mobileTab === 'CHART' ? 'hidden md:flex' : mobileTab === 'BOOK' ? 'flex' : 'hidden md:flex'
+          }`}>
           {/* Order Book Simulator */}
           {selectedToken && (
-            <div className="p-4 bg-zinc-950/40">
-              <div className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
+            <div className="p-4 bg-card/40">
+              <div className="text-xs font-bold text-secondary uppercase tracking-widest mb-3">
                 Order Book
               </div>
               <div className="space-y-3 font-mono text-xs">
@@ -424,23 +509,23 @@ function TradeContent() {
                     const amount = 1.25 * (i + 1) * Math.random()
                     const total = price * amount
                     return (
-                      <div key={i} className="flex justify-between relative py-0.5 px-1.5 rounded hover:bg-white/5 cursor-pointer">
+                      <div key={i} className="flex justify-between relative py-0.5 px-1.5 rounded hover:bg-card cursor-pointer">
                         <div className="absolute inset-y-0 right-0 bg-red-500/10 transition-all" style={{ width: `${30 + i * 15}%` }} />
                         <span className="text-red-500 font-bold z-10">
                           {price > 1 ? price.toFixed(2) : price.toFixed(6)}
                         </span>
-                        <span className="text-white/60 z-10">{amount.toFixed(2)}</span>
-                        <span className="text-white/40 z-10">{total.toFixed(2)}</span>
+                        <span className="text-secondary z-10">{amount.toFixed(2)}</span>
+                        <span className="text-secondary/50 z-10">{total.toFixed(2)}</span>
                       </div>
                     )
                   })}
                 </div>
 
                 {/* Spread Display */}
-                <div className="py-2 border-y border-white/5 flex justify-between items-center text-xs font-bold">
-                  <span className="text-white/50">Spread</span>
-                  <span className="text-[#C5F236] font-mono">0.02%</span>
-                  <span className="text-white">
+                <div className="py-2 border-y border-border flex justify-between items-center text-xs font-bold">
+                  <span className="text-secondary">Spread</span>
+                  <span className="text-accent font-mono">0.02%</span>
+                  <span className="text-foreground">
                     ${selectedToken.price > 1 ? selectedToken.price.toFixed(2) : selectedToken.price.toFixed(6)}
                   </span>
                 </div>
@@ -452,13 +537,13 @@ function TradeContent() {
                     const amount = 2.1 * (i + 1) * Math.random()
                     const total = price * amount
                     return (
-                      <div key={i} className="flex justify-between relative py-0.5 px-1.5 rounded hover:bg-white/5 cursor-pointer">
+                      <div key={i} className="flex justify-between relative py-0.5 px-1.5 rounded hover:bg-card cursor-pointer">
                         <div className="absolute inset-y-0 right-0 bg-green-500/10 transition-all" style={{ width: `${20 + i * 20}%` }} />
                         <span className="text-green-500 font-bold z-10">
                           {price > 1 ? price.toFixed(2) : price.toFixed(6)}
                         </span>
-                        <span className="text-white/60 z-10">{amount.toFixed(2)}</span>
-                        <span className="text-white/40 z-10">{total.toFixed(2)}</span>
+                        <span className="text-secondary z-10">{amount.toFixed(2)}</span>
+                        <span className="text-secondary/50 z-10">{total.toFixed(2)}</span>
                       </div>
                     )
                   })}
@@ -468,7 +553,7 @@ function TradeContent() {
           )}
 
           {/* Trade Execution Pane */}
-          <div className="flex-1 bg-zinc-950">
+          <div className="flex-1 bg-background">
             {selectedToken && (
               <TradePanel
                 token={selectedToken}
@@ -479,9 +564,8 @@ function TradeContent() {
         </div>
 
         {/* Mobile Mode: Separate Tab overlay for Trade console */}
-        <div className={`md:hidden col-span-1 h-full min-h-0 bg-zinc-950 ${
-          mobileTab !== 'TRADE' ? 'hidden' : 'block'
-        }`}>
+        <div className={`md:hidden col-span-1 h-full min-h-0 bg-background overflow-y-auto pb-24 ${mobileTab !== 'TRADE' ? 'hidden' : 'block'
+          }`}>
           {selectedToken && (
             <TradePanel
               token={selectedToken}
@@ -497,11 +581,11 @@ function TradeContent() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="p-4 bg-zinc-900/95 border border-white/10 rounded-2xl shadow-2xl flex items-start justify-between gap-3 animate-fadeIn backdrop-blur-md"
+            className="p-4 bg-card/95 border border-border rounded-2xl shadow-2xl flex items-start justify-between gap-3 animate-fadeIn backdrop-blur-md"
           >
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-white">{toast.message}</h4>
-              <p className="text-xs text-white/50 mt-1 leading-relaxed">{toast.sub}</p>
+              <h4 className="text-sm font-bold text-foreground">{toast.message}</h4>
+              <p className="text-xs text-secondary mt-1 leading-relaxed">{toast.sub}</p>
               {toast.hash && (
                 <a
                   href={`https://solscan.io/tx/${toast.hash}`}
@@ -516,7 +600,7 @@ function TradeContent() {
             </div>
             <button
               onClick={() => removeToast(toast.id)}
-              className="p-1 rounded bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded bg-card hover:bg-card/80 text-secondary hover:text-foreground transition-colors cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -529,11 +613,11 @@ function TradeContent() {
 
 export default function TradePage() {
   return (
-    <div className="flex flex-col h-screen bg-black">
+    <div className="flex flex-col h-[100dvh] bg-background">
       <Navbar />
       <Suspense fallback={
-        <div className="flex-1 flex flex-col items-center justify-center text-white/20 gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-t-[#C5F236] border-white/10 animate-spin" />
+        <div className="flex-1 flex flex-col items-center justify-center text-secondary/30 gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-t-accent border-border animate-spin" />
           <span>Syncing Terminal Ledger...</span>
         </div>
       }>

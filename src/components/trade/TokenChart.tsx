@@ -153,26 +153,26 @@ export function TokenChart({ tokenAddress, tokenSymbol, tokenPrice, priceChangeP
   }, [tokenAddress, timeframe, tokenPrice, priceChangePercent])
 
   return (
-    <div className="bg-zinc-950 border border-white/5 rounded-2xl p-4 flex flex-col relative">
+    <div className="bg-card border border-border rounded-2xl p-4 flex flex-col relative">
       {/* Chart Headers */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-4">
-          <span className="font-bold text-base text-white">{tokenSymbol} / USD</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/5 text-[#C5F236]">
+          <span className="font-bold text-base text-foreground">{tokenSymbol} / USD</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-accent/10 text-accent">
             {timeframe}
           </span>
         </div>
 
         {/* Timeframe Selectors */}
-        <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5">
+        <div className="flex bg-background p-0.5 rounded-lg border border-border">
           {['5m', '15m', '1h', '4h', '1d'].map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 timeframe === tf
-                  ? 'bg-[#C5F236] text-black shadow-sm'
-                  : 'text-white/60 hover:text-white'
+                  ? 'bg-accent text-background shadow-sm'
+                  : 'text-secondary hover:text-foreground'
               }`}
             >
               {tf.toUpperCase()}
@@ -182,12 +182,12 @@ export function TokenChart({ tokenAddress, tokenSymbol, tokenPrice, priceChangeP
       </div>
 
       {/* Chart Area */}
-      <div className="relative flex-1 min-h-[380px] w-full bg-zinc-950 rounded-xl overflow-hidden">
+      <div className="relative flex-1 min-h-[380px] w-full bg-background rounded-xl overflow-hidden">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm z-10">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-8 h-8 rounded-full border-2 border-t-[#C5F236] border-white/10 animate-spin" />
-              <span className="text-xs text-white/50">Fetching charts...</span>
+              <div className="w-8 h-8 rounded-full border-2 border-t-accent border-border animate-spin" />
+              <span className="text-xs text-secondary">Fetching charts...</span>
             </div>
           </div>
         )}

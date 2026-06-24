@@ -15,9 +15,10 @@ interface Token {
 interface TokenListProps {
   onSelectToken: (token: Token) => void
   selectedTokenAddress?: string
+  autoSelectFirst?: boolean
 }
 
-export function TokenList({ onSelectToken, selectedTokenAddress }: TokenListProps) {
+export function TokenList({ onSelectToken, selectedTokenAddress, autoSelectFirst }: TokenListProps) {
   const [tokens, setTokens] = useState<Token[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -37,6 +38,9 @@ export function TokenList({ onSelectToken, selectedTokenAddress }: TokenListProp
         }))
         setTokens(mapped)
         setLoading(false)
+        if (autoSelectFirst && mapped.length > 0 && !selectedTokenAddress) {
+          onSelectToken(mapped[0])
+        }
       })
       .catch((err) => {
         console.error('Failed to load tokens in sidebar:', err)
@@ -54,24 +58,24 @@ export function TokenList({ onSelectToken, selectedTokenAddress }: TokenListProp
   )
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 border-r border-white/5">
+    <div className="flex flex-col h-full bg-background border-r border-border">
       {/* Search Header */}
-      <div className="p-4 border-b border-white/5">
+      <div className="p-4 border-b border-border">
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/40" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-secondary" />
           <input
             type="text"
             placeholder="Search symbol or paste address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-4 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#C5F236]/50 transition-colors"
+            className="w-full bg-card border border-border rounded-xl py-2 pl-9 pr-4 text-sm text-foreground placeholder-secondary focus:outline-none focus:border-accent/50 transition-colors"
           />
         </div>
       </div>
 
       {/* Markets List */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-3 text-[10px] font-bold text-white/40 uppercase tracking-widest">
+        <div className="p-3 text-[10px] font-bold text-secondary uppercase tracking-widest">
           Trending Markets
         </div>
 
@@ -79,19 +83,19 @@ export function TokenList({ onSelectToken, selectedTokenAddress }: TokenListProp
           <div className="p-4 space-y-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="w-8 h-8 rounded-full bg-white/5" />
+                <div className="w-8 h-8 rounded-full bg-card" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3 w-16 bg-white/5 rounded" />
-                  <div className="h-2 w-10 bg-white/5 rounded" />
+                  <div className="h-3 w-16 bg-card rounded" />
+                  <div className="h-2 w-10 bg-card rounded" />
                 </div>
-                <div className="h-4 w-12 bg-white/5 rounded" />
+                <div className="h-4 w-12 bg-card rounded" />
               </div>
             ))}
           </div>
         ) : filteredTokens.length === 0 ? (
-          <div className="p-6 text-center text-sm text-white/30">No markets found</div>
+          <div className="p-6 text-center text-sm text-secondary/50">No markets found</div>
         ) : (
-          <div className="divide-y divide-white/2">
+          <div className="divide-y divide-border/30">
             {filteredTokens.map((token) => {
               const isSelected = selectedTokenAddress?.toLowerCase() === token.address.toLowerCase()
               const isUp = token.price24hChangePercent >= 0
@@ -101,31 +105,31 @@ export function TokenList({ onSelectToken, selectedTokenAddress }: TokenListProp
                   key={token.address}
                   onClick={() => onSelectToken(token)}
                   className={`w-full flex items-center justify-between p-3.5 text-left transition-all cursor-pointer ${
-                    isSelected ? 'bg-[#C5F236]/10 border-l-2 border-[#C5F236]' : 'hover:bg-white/2'
+                    isSelected ? 'bg-accent/10 border-l-2 border-accent' : 'hover:bg-card/40'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <img
                       src={token.logoURI || '/logo/light.png'}
                       alt={token.symbol}
-                      className="w-7 h-7 rounded-full bg-white/10 flex-shrink-0"
+                      className="w-7 h-7 rounded-full bg-card flex-shrink-0"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).src = '/logo/light.png'
                       }}
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-white truncate">{token.symbol}</span>
-                        <span className="text-[10px] text-white/40 font-mono hidden xl:inline">
+                        <span className="font-bold text-sm text-foreground truncate">{token.symbol}</span>
+                        <span className="text-[10px] text-secondary font-mono hidden xl:inline">
                           {token.address.slice(0, 4)}...{token.address.slice(-4)}
                         </span>
                       </div>
-                      <span className="text-xs text-white/45 truncate block">{token.name}</span>
+                      <span className="text-xs text-secondary truncate block">{token.name}</span>
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0 pl-2">
-                    <div className="font-mono text-sm font-bold text-white">
+                    <div className="font-mono text-sm font-bold text-foreground">
                       ${token.price > 1 ? token.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : token.price.toFixed(6)}
                     </div>
                     <div className={`text-xs font-semibold ${isUp ? 'text-green-500' : 'text-red-500'}`}>
