@@ -3,6 +3,7 @@
 import { ChartCandlestickIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 
 export function FlowDesign1({ flows }: { flows: any[] }) {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -79,9 +80,14 @@ export function FlowDesign1({ flows }: { flows: any[] }) {
           {/* 25% Left Track */}
           <div className="w-1/4 flex flex-col justify-center gap-6 py-8">
             {flows.map((flow, i) => (
-              <div
+              <motion.div
                 key={flow.id}
-                className={`flex flex-col gap-1 transition-all duration-300 ${i === activeIndex ? 'opacity-100 scale-105 origin-left' : 'opacity-30 cursor-pointer hover:opacity-60'}`}
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: i === activeIndex ? 1 : 0.3, x: 0 }}
+                viewport={{ once: false, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                whileHover={i !== activeIndex ? { scale: 1.05, opacity: 0.8, x: 10 } : undefined}
+                className={`flex flex-col gap-1 transition-all duration-300 ${i === activeIndex ? 'opacity-100 scale-105 origin-left' : 'opacity-30 cursor-pointer'}`}
                 onClick={() => {
                   setActiveIndex(i)
                   if (scrollContainerRef.current) {
@@ -92,14 +98,20 @@ export function FlowDesign1({ flows }: { flows: any[] }) {
                   }
                 }}
               >
-                <span className="text-[#C5F236] text-sm font-bold">0{i + 1}</span>
+                <span className="text-accent text-sm font-bold">0{i + 1}</span>
                 <span className="font-bold text-xl">{flow.title}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
 
           {/* 75% Right Viewport */}
-          <div className="w-3/4 bg-[#121212] rounded-[32px] border border-white/10 overflow-hidden relative shadow-2xl">
+          <motion.div
+            className="w-3/4 bg-[#121212] rounded-[32px] border border-white/10 overflow-hidden relative shadow-2xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: false, margin: "-100px" }}
+            transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+          >
             <div
               ref={scrollContainerRef}
               className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
@@ -112,7 +124,13 @@ export function FlowDesign1({ flows }: { flows: any[] }) {
                   <div className="absolute inset-0 bg-[#C5F236]/5 blur-[100px] z-0 pointer-events-none" />
 
                   <div className="relative w-full h-full bg-black/40 rounded-2xl border border-white/5 overflow-hidden flex flex-col items-center justify-center shadow-2xl z-10">
-                    <img src={flow.image} alt={flow.title} className="w-auto h-full max-h-[400px] object-contain" />
+                    <motion.img
+                      src={flow.image}
+                      alt={flow.title}
+                      className="w-auto h-full max-h-[400px] object-contain"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.4 }}
+                    />
 
                     <div className="absolute inset-x-0 bottom-0 p-8 bg-gradient-to-t from-black via-black/80 to-transparent z-20 translate-y-4 opacity-0 transition-all duration-500" style={{ opacity: isPaused ? 1 : 0, transform: isPaused ? 'translateY(0)' : 'translateY(1rem)' }}>
                       <h3 className="text-2xl font-bold">{flow.title}</h3>
@@ -122,7 +140,7 @@ export function FlowDesign1({ flows }: { flows: any[] }) {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Mobile Layout */}

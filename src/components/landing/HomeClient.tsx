@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { motion, Variants } from 'framer-motion'
 import { APP_LINKS } from '@/lib/constants'
 import { FlowDesign1 } from './FlowDesign1'
+import { Zap, Users, Gem } from 'lucide-react'
 
 
 // Core horizontal workflows provided by founder
@@ -116,6 +118,7 @@ export function HomeClient() {
 
   // Interactive UI states for mobile carousel (Theme 3) and desktop Bento box (Theme 4)
   const [theme3Rotation, setTheme3Rotation] = useState(0)
+  const [theme4HoveredIdx, setTheme4HoveredIdx] = useState<number | null>(null)
   const theme3Dragging = useRef(false)
   const theme3StartX = useRef(0)
   const theme3StartRotation = useRef(0)
@@ -141,10 +144,8 @@ export function HomeClient() {
     setTheme3Rotation(snapped)
   }
 
-  const [theme4HoveredIdx, setTheme4HoveredIdx] = useState<number | null>(null)
-
-  // Autoplay handler to ensure muted video plays correctly on all platforms
   useEffect(() => {
+    // Autoplay fallback
     const video = videoRef.current
     if (video) {
       video.muted = true
@@ -154,64 +155,100 @@ export function HomeClient() {
     }
   }, [])
 
+  // Animation variants for Hero text stagger
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.1,
+      }
+    }
+  }
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { type: 'spring', stiffness: 100, damping: 20 }
+    }
+  }
+
   return (
     <>
       {/* Hero Section */}
       <section className="relative w-full py-16 md:py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Column: Copy */}
-        <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
-          <div className="hidden md:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20">
+        <motion.div
+          className="lg:col-span-7 space-y-8 text-center lg:text-left"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: false }}
+        >
+          <motion.div variants={itemVariants} className="hidden md:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             <span className="text-sm font-semibold text-accent tracking-wide uppercase">
               Now Live on Solana Mainnet
             </span>
-          </div>
+          </motion.div>
 
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05]">
+          <motion.h1 variants={itemVariants} className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05]">
             HUNT EVERY <br className="hidden sm:inline" />
             <span className="text-accent">MEMECOIN.</span>
             <br />
             EVERY CHAIN. <br className="hidden sm:inline" />
             <span className="text-secondary">ONE WALLET.</span>
-          </h1>
+          </motion.h1>
 
-          <p className="text-lg md:text-xl text-secondary max-w-xl mx-auto lg:mx-0 leading-relaxed">
+          <motion.p variants={itemVariants} className="text-lg md:text-xl text-secondary max-w-xl mx-auto lg:mx-0 leading-relaxed">
             The fastest mobile trading wallet built for the Solana ecosystem.
             Instantly track wallets, copy trades, auto-buy on launch, and unlock
-            high-speed swaps.
-          </p>
+            features meant for the top 1%.
+          </motion.p>
 
-          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
-            <a
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+            <motion.a
               href={APP_LINKS.appStore}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-6 py-3.5 bg-foreground text-background font-bold rounded-2xl hover:bg-accent hover:text-background transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer shadow-lg shadow-foreground/5"
+              className="w-full sm:w-auto px-8 py-4 bg-accent text-background font-bold rounded-2xl hover:brightness-110 transition-colors shadow-[0_0_40px_rgba(197,242,54,0.3)] flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.05 2.27.74 2.96.76.7-.02 1.83-.81 3.41-.69 1.48.05 2.61.64 3.32 1.62-2.91 1.74-2.45 5.53.44 6.74-.75 1.87-1.46 3.6-2.13 4.54z" />
+                <path d="M12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.32 2.3-1.8 4.22-3.74 4.25z" />
               </svg>
-              <span>Download on App Store</span>
-            </a>
-            <a
+              Get for iPhone
+            </motion.a>
+            <motion.a
               href={APP_LINKS.playStore}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-6 py-3.5 bg-card text-foreground font-bold rounded-2xl border border-border hover:brightness-110 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 bg-foreground/10 text-foreground font-bold rounded-2xl hover:bg-foreground/20 transition-colors flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85c-.5-.24-.84-.76-.84-1.35m13.81-5.38L6.05 21.34l8.49-8.49 2.27 2.27m3.35-4.31c.34.27.56.69.56 1.19s-.22.92-.56 1.19l-2.29 1.32-2.5-2.5 2.5-2.5 2.29 1.3M6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z" />
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                <path d="M17.523 15.341l2.424-1.4c2.736-1.58 2.736-4.302 0-5.882l-2.424-1.4L12.75 11.43l4.773 3.91zM2.87 21.05c-.328.349-.87.054-.87-.433V3.383c0-.487.542-.782.87-.433l9.022 9.58-9.022 8.52zM11.892 12.43l5.069-4.148-12.7-7.332c-1.368-.79-2.261-.274-2.261 1.306L11.892 12.43zM11.892 11.43L2.001 21.744c0 1.58.893 2.096 2.261 1.306l12.7-7.332-5.07-4.288z" />
               </svg>
-              <span>Get it on Google Play</span>
-            </a>
-          </div>
-        </div>
+              Get for Android
+            </motion.a>
+          </motion.div>
+        </motion.div>
 
-        {/* Right Column: Sleek Phone Video Container */}
-        <div className="lg:col-span-5 flex justify-center items-center">
+        {/* Right Column: Hero Graphic */}
+        <motion.div
+          className="lg:col-span-5 relative flex justify-center items-center"
+          initial={{ opacity: 0, x: 50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: false }}
+          transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
+        >
           <div className="relative w-[230px] sm:w-[250px] md:w-[270px] aspect-[9/19] rounded-[38px] border-[6px] border-border bg-background overflow-hidden ring-1 ring-border shadow-2xl">
-            {/* Phone Notch/Island */}
-
             {/* Real App Video */}
             <video
               ref={videoRef}
@@ -225,7 +262,7 @@ export function HomeClient() {
               <source src="/video/chadwallet.mp4" type="video/mp4" />
             </video>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Text Marquee Strip */}
@@ -233,7 +270,13 @@ export function HomeClient() {
 
       {/* Section Header */}
       <section className="bg-background px-6 pt-24 pb-8">
-        <div className="max-w-4xl mx-auto text-center space-y-5">
+        <motion.div 
+          className="max-w-4xl mx-auto text-center space-y-5"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false }}
+          transition={{ duration: 0.6 }}
+        >
           <span className="text-sm font-semibold text-accent tracking-widest uppercase">The Alpha Terminal</span>
           <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
             For Meme Coins &amp;<br />
@@ -242,7 +285,7 @@ export function HomeClient() {
           <p className="text-secondary text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
             ChadWallet isn&apos;t just another trading tool — it&apos;s your edge in the meme coin casino. We track the smartest wallets on Solana and tell you what they&apos;re buying before it moons.
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* Core Flow Section (Theme 1: Immersive Theater) */}
@@ -250,7 +293,13 @@ export function HomeClient() {
 
       {/* Responsive App Screens Showcase Section */}
       <section className="py-24 bg-background border-t border-border relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 mb-16 text-center">
+        <motion.div
+          className="max-w-6xl mx-auto px-6 mb-16 text-center"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+        >
           <span className="text-accent text-xs font-bold tracking-widest uppercase px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20">
             Interface Tour
           </span>
@@ -260,7 +309,7 @@ export function HomeClient() {
           <p className="text-secondary text-sm mt-3 max-w-2xl mx-auto">
             Explore our state-of-the-art interface designed for high-frequency Solana traders.
           </p>
-        </div>
+        </motion.div>
 
         {/* Mobile View: Theme 3 - Curved 3D Carousel */}
         <div className="block md:hidden">
@@ -341,12 +390,17 @@ export function HomeClient() {
               const isHovered = theme4HoveredIdx === idx
 
               return (
-                <div
+                <motion.div
                   key={screen.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: false, margin: "-50px" }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  whileHover={{ y: -5 }}
                   onMouseEnter={() => setTheme4HoveredIdx(idx)}
                   onMouseLeave={() => setTheme4HoveredIdx(null)}
                   className={`relative rounded-3xl border border-border bg-card/20 p-6 overflow-hidden flex gap-6 justify-between items-center transition-all duration-500 ease-out cursor-pointer ${gridClasses} ${isDimmed ? 'opacity-35 scale-[0.97] blur-[1px]' : 'opacity-100 scale-100'
-                    } ${isHovered ? 'border-accent/50 shadow-accent/10 bg-card/60' : ''}`}
+                    } ${isHovered ? 'border-accent/50 shadow-accent/10 bg-card/60 shadow-2xl' : ''}`}
                 >
                   <div className="flex-1 flex flex-col h-full justify-between z-10">
                     <div>
@@ -368,7 +422,7 @@ export function HomeClient() {
                       draggable="false"
                     />
                   </div>
-                </div>
+                </motion.div>
               )
             })}
           </div>
@@ -382,36 +436,46 @@ export function HomeClient() {
             {
               title: 'Instant Execution',
               desc: 'Powered by private RPC routing nodes. Swap memecoins in milliseconds without transaction drops.',
-              icon: '⚡',
+              icon: <Zap className="w-8 h-8 text-accent" />,
             },
             {
               title: 'Copy trading',
               desc: 'Subscribe to high-hit-rate wallets and execute identical transactions automatically as soon as they hit the chain.',
-              icon: '👥',
+              icon: <Users className="w-8 h-8 text-accent" />,
             },
             {
               title: '$CHAD Loyalty Rewards',
               desc: 'Trade to earn points and claim $CHAD loyalty bonuses. Boost your returns with copy trade shares.',
-              icon: '💎',
+              icon: <Gem className="w-8 h-8 text-accent" />,
             },
-          ].map((f) => (
-            <div
+          ].map((f, idx) => (
+            <motion.div
               key={f.title}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, margin: "-50px" }}
+              transition={{ delay: idx * 0.1, type: 'spring', stiffness: 100, damping: 20 }}
               className="glass rounded-3xl p-8 hover:border-accent/30 transition-all duration-300 group"
             >
-              <div className="text-4xl mb-6">{f.icon}</div>
+              <div className="mb-6">{f.icon}</div>
               <h3 className="text-xl font-bold mb-3 group-hover:text-accent transition-colors">
                 {f.title}
               </h3>
               <p className="text-sm text-secondary leading-relaxed">{f.desc}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* CTA Bottom Banner */}
-      <section className="bg-accent/80 text-background py-16 text-center px-6">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <section className="bg-accent/80 text-background py-16 text-center px-6 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: false }}
+          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+          className="max-w-2xl mx-auto space-y-6"
+        >
           <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-none">
             START HUNTING TODAY
           </h2>
@@ -436,7 +500,7 @@ export function HomeClient() {
               Google Play
             </a>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Footer */}
